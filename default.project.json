@@ -1,0 +1,27 @@
+{
+  "name": "ManualSwingDoors",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "Elevator": {
+        "$className": "Model",
+        "Controller": {
+          "$className": "Script",
+          "Plugins": {
+            "$className": "Folder",
+            "Manual_Swing_Doors": {
+              "$path": "src/Manual_Swing_Doors",
+              "Swing_API": {
+                  "$className": "BindableEvent"
+              },
+              "Dependencies": {
+                "$className": "Folder",
+                "$path": "Packages"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
