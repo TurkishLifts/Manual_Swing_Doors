@@ -1,6 +1,15 @@
 {
   "name": "Manual_Swing_Doors",
   "tree": {
-    "$path": "src"
+    "$path": "src",
+    "Dependencies": {
+    "$path": "Packages" 
+    },
+    "Swing_API": {
+        "$className": "BindableEvent"
+    },
+    "Control_API": {
+        "$className": "BindableEvent"
+    }
   }
 }
