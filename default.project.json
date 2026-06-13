@@ -10,7 +10,7 @@
           "Plugins": {
             "$className": "Folder",
             "Manual_Swing_Doors": {
-              "$path": "src/Manual_Swing_Doors",
+              "$path": "src",
               "Swing_API": {
                   "$className": "BindableEvent"
               },
