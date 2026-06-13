@@ -1,17 +1,32 @@
---!nocheck
-
 --[[
 	Manual Swing Door support for ModuluxV2 by TurkishLifts
 	
-	       VERSION: v1.2.2, DATE: 12/06/2026
+	       VERSION: v1.3, DATE: 14/06/2026
 ]]--
 
+--!nocheck
+
 local module = {}
+
+-- Types
+type FloorDataInstance = {
+	debounce: boolean,
+	bypass_debounce : boolean,
+	opened: boolean,
+	count: number,
+	bypass: boolean,
+	locked : boolean,
+	touch_debounce: boolean,
+	idle_loop_active: boolean,
+	doormodel : Model,
+	startPivot : CFrame,
+	targetPivot : CFrame,
+}
 
 function module.init(controller)
 	local RunService = game:GetService("RunService")
 
-	local SwingDoors = {
+	local SwingDoors : {FloorDataInstance} = {
 
 	}
 	
@@ -33,7 +48,6 @@ function module.init(controller)
 	local FloorsFolder : Folder = ElevatorModel:FindFirstChild("Floors")
 	local CurrentFloor : NumberValue = Values:WaitForChild("Floor")
 	local API : BindableEvent = controller.API
-	local Swing_API : BindableEvent = script:FindFirstChild("Swing_API")
 	local Platform : BasePart = controller.Platform
 
 	local ElevatorFloors = controller.Floors
@@ -43,6 +57,9 @@ function module.init(controller)
 			request = 'open' 
 		})
 	end
+
+	local Swing_API : BindableEvent = script:FindFirstChild("Swing_API")
+
 	if not Swing_API then
 		local Swing_API_NEW : BindableEvent = Instance.new("BindableEvent")
 		Swing_API_NEW.Name = "Swing_API"
@@ -50,6 +67,14 @@ function module.init(controller)
 		Swing_API = Swing_API_NEW
 	end
 
+	local Control_API : BindableEvent = script:FindFirstChild("Control_API")
+
+	if not Control_API then
+		local Control_API_NEW : BindableEvent = Instance.new("BindableEvent")
+		Control_API_NEW.Name = "Control_API"
+		Control_API_NEW.Parent = script
+		Control_API = Control_API_NEW
+	end
 	local GetCFCValue = function(Key : any, FloorName : string)
 		local CFC = config.CustomFloorConfig
 
@@ -98,20 +123,39 @@ function module.init(controller)
 		end
 	end
 
+	local IsOnFloor = function(FloorName)
+		local FloorModel = FloorsFolder[FloorName]
+		local FloorData = SwingDoors[FloorName]
+
+		if (Values.Floor.Value == tonumber((FloorModel.Name:gsub("Floor_","")))
+			and Values.Speed.Value == 0
+			and FloorData.locked == false
+			and FloorData.debounce == false)
+		then
+			return true
+		else
+			return false
+		end
+	end
+
+	local FloorExists = function(FloorNumber)
+		local FloorModel = FloorsFolder:FindFirstChild(`Floor_{FloorNumber}`)
+		if FloorModel then
+			return true
+		end
+		return false
+	end
 	local ToggleDoor = function() end
+
 	local SwingDoorFunctions = {
-		ToggleDoor = function(Player : Player, DoorModel : Model, Value: string?)
+		OpenDoor = function(Player : Player, DoorModel : Model, startPivot, targetPivot)
 			local FloorModel = DoorModel.Parent.Parent
 
-			local FloorData : {debounce: boolean, bypass_debounce : boolean, opened: boolean, count: number, bypass: boolean, locked : boolean} = SwingDoors[FloorModel.Name]
+			local FloorData : FloorDataInstance = SwingDoors[FloorModel.Name]
 
 
-			local CloseWhileOpen =  GetConfig("CloseWhileOpen", FloorModel.Name, true)
 			local OpenSpeed = GetConfig("OpenSpeed", FloorModel.Name, 1)
-			local CloseSpeed = GetConfig("CloseSpeed", FloorModel.Name, 1)
 			local OpenSoundId = GetConfig("OpenSound", FloorModel.Name, 0)
-			local ClosingSoundId = GetConfig("ClosingSound", FloorModel.Name, 0)
-			local ClosedSoundId = GetConfig("ClosedSound", FloorModel.Name, 0)
 			local DoorSoundsEnabled = GetConfig("DoorSoundsEnabled", FloorModel.Name, false)
 			local DoorVolume = GetConfig("DoorVolume", FloorModel.Name, 1)
 			local DoorRollOffMaxDistance = GetConfig("DoorRollOffMaxDistance", FloorModel.Name, 15)
@@ -127,31 +171,7 @@ function module.init(controller)
 				end
 			end
 
-			if Value == "KEY" then
-				if FloorData.bypass == true then
-					FloorData.bypass = false
-					FloorData.count = math.huge
-					--FloorData.debounce = false 
-					return
-				else
-					FloorData.bypass = true
-					FloorData.count = 0
-					if FloorData.opened then return end
-				end
-			end
 
-			if FloorData.opened and FloorData.bypass == false then
-				if CloseWhileOpen then
-					FloorData.count = math.huge
-				end 
-				return 
-			elseif FloorData.opened and FloorData.bypass == true then
-				FloorData.bypass = false
-				FloorData.count = math.huge 
-				return
-			end
-
-			if (Values.Floor.Value == tonumber((FloorModel.Name:gsub("Floor_",""))) and Values.Speed.Value == 0 and FloorData.locked == false and FloorData.debounce == false) or (Value == "KEY" and FloorData.debounce == false) then
 				script.Swing_API:Fire("Swing_Door_Opening", {
 					FloorNumber = (FloorModel.Name:gsub("Floor_","")),
 					FloorModel = FloorModel,
@@ -167,15 +187,6 @@ function module.init(controller)
 					DoorSound:Play()
 				end
 
-				local startPivot = DoorModel:GetPivot()
-				local targetPivot;
-
-				local DoorRotation = GetConfig("DoorRotation",FloorModel.Name, "Clockwise")
-				if DoorRotation == "Anticlockwise" then
-					targetPivot = startPivot * CFrame.Angles(0, math.rad(90), 0)
-				else
-					targetPivot = startPivot * CFrame.Angles(0, math.rad(-90), 0)
-				end
 
 				local t = 0
 				while t < 1 do
@@ -194,32 +205,20 @@ function module.init(controller)
 				FloorData.debounce = false
 
 
-				local openStartTime = os.clock()
+		end,
 
-				local targetOpenTime = GetConfig("OpenTime",FloorModel.Name,3)
+		CloseDoor = function(Player : Player, DoorModel : Model, startPivot, targetPivot)
+				local FloorModel = DoorModel.Parent.Parent
 
-				if FloorData.bypass == true then targetOpenTime = math.huge end
+				local FloorData : FloorDataInstance = SwingDoors[FloorModel.Name]
 
-				while FloorData.opened do
-					task.wait(0.1) 
-					FloorData.count += 1
-					if FloorData.count == math.huge then
-						break
-					end
 
-					if FloorData.bypass then
-						openStartTime = os.clock()
-						FloorData.count = 0
-						continue
-					end
-
-					if(os.clock() - openStartTime) >= targetOpenTime then
-						break
-					end
-				end
-
-				FloorData.count = 0
-
+				local CloseSpeed = GetConfig("CloseSpeed", FloorModel.Name, 1)
+				local ClosingSoundId = GetConfig("ClosingSound", FloorModel.Name, 0)
+				local ClosedSoundId = GetConfig("ClosedSound", FloorModel.Name, 0)
+				local DoorSoundsEnabled = GetConfig("DoorSoundsEnabled", FloorModel.Name, false)
+				
+				local DoorSound : Sound = Platform:FindFirstChild("Swing_Door_Sound")
 				if not FloorData.bypass then
 
 					script.Swing_API:Fire("Swing_Door_Closing", {
@@ -243,6 +242,7 @@ function module.init(controller)
 						end
 					end)
 					
+
 					local t = 0
 					while t < 1 do
 						local dt = RunService.Heartbeat:Wait()
@@ -263,7 +263,6 @@ function module.init(controller)
 
 					FloorData.debounce = false
 				end
-			end
 		end,
 
 		OnTouched = function(BasePart: BasePart, DoorModel : Model)
@@ -356,11 +355,75 @@ function module.init(controller)
 		end,
 	}
 
-	ToggleDoor = SwingDoorFunctions.ToggleDoor
+	ToggleDoor = function(Player : Player, DoorModel : Model, Value: string?)
+		local FloorModel = DoorModel.Parent.Parent
+		local CloseWhileOpen =  GetConfig("CloseWhileOpen", FloorModel.Name, true)
+		local FloorData = SwingDoors[FloorModel.Name]
+
+		if Value == "KEY" then
+			if FloorData.bypass == true then
+				FloorData.bypass = false
+				FloorData.count = math.huge
+				--FloorData.debounce = false 
+				return
+			else
+				FloorData.bypass = true
+				FloorData.count = 0
+				if FloorData.opened then return end
+			end
+		end
+
+		if FloorData.opened and FloorData.bypass == false then
+			if CloseWhileOpen then
+				FloorData.count = math.huge
+			end 
+			return 
+		elseif FloorData.opened and FloorData.bypass == true then
+			FloorData.bypass = false
+			FloorData.count = math.huge 
+			return
+		end
+
+		if IsOnFloor(FloorModel.Name) or (Value == "KEY" and FloorData.debounce == false) then
+
+		SwingDoorFunctions.OpenDoor(Player, DoorModel, FloorData.startPivot, FloorData.targetPivot)
+
+		local openStartTime = os.clock()
+
+		local targetOpenTime = GetConfig("OpenTime",FloorModel.Name,3)
+
+		if FloorData.bypass == true then targetOpenTime = math.huge end
+
+		while FloorData.opened do
+			task.wait(0.1) 
+			FloorData.count += 1
+			if FloorData.count == math.huge then
+				break
+			end
+
+			if FloorData.bypass then
+				openStartTime = os.clock()
+				FloorData.count = 0
+				continue
+			end
+
+			if(os.clock() - openStartTime) >= targetOpenTime then
+				break
+			end
+		end
+
+		FloorData.count = 0
+
+		SwingDoorFunctions.CloseDoor(Player, DoorModel, FloorData.startPivot, FloorData.targetPivot)
+
+	end
+
+	end
+
 	if FloorsFolder then
 		local Floors = FloorsFolder:GetChildren()
 
-		for i, floor : Model in pairs(Floors) do
+		for i, floor : Model in ipairs(Floors) do
 			if floor:IsA("Model") == false then continue end
 
 			local FloorNumber = (floor.Name:gsub("Floor_",""))
@@ -369,7 +432,7 @@ function module.init(controller)
 			local FrontDoors : Model = floor:FindFirstChild("Front_Doors")
 			local BackDoors : Model = floor:FindFirstChild("Back_Doors")
 
-			if not FrontDoors and not BackDoors then warn(`Front_Doors and Back_Doors not found. Skipping door setup for floor {FloorNumber}.`) continue end
+			if not FrontDoors and not BackDoors then warn(`Front_Doors and Back_Doors not found. Skipping door setup for floor {FloorNumber}.`); continue end
 			if not SwingDoorContainer then warn(`Swing_Doors not found. Skipping door setup for floor {FloorNumber}.`); continue end
 
 			local SwingDoor : Model = SwingDoorContainer:FindFirstChildWhichIsA("Model")
@@ -377,6 +440,16 @@ function module.init(controller)
 			if not SwingDoor then warn(`SwingDoor not found on floor {floor.Name:gsub("Floor_","")}, skipping floor.`); continue end
 
 			if SwingDoors[floor.Name] == nil then
+				local startPivot = SwingDoor:GetPivot()
+				local targetPivot;
+
+				local DoorRotation = GetConfig("DoorRotation",floor.Name, "Clockwise")
+				if DoorRotation == "Anticlockwise" then
+					targetPivot = startPivot * CFrame.Angles(0, math.rad(90), 0)
+				else
+					targetPivot = startPivot * CFrame.Angles(0, math.rad(-90), 0)
+				end
+
 				SwingDoors[floor.Name] = {
 					debounce = false,
 					opened = false,
@@ -385,11 +458,13 @@ function module.init(controller)
 					count = 0,
 					touch_debounce = false,
 					idle_loop_active = false,
-					doormodel = SwingDoor
+					doormodel = SwingDoor,
+					startPivot = startPivot,
+					targetPivot = targetPivot
 				}
 			end
 
-			for _,v : Instance in pairs(SwingDoor:GetChildren()) do
+			for _,v : Instance in ipairs(SwingDoor:GetChildren()) do
 				local DetectorType = GetConfig("DetectorType", floor.Name, "DragDetector")
 				if DetectorType == "DragDetector" then
 					local DragDetector = Instance.new("DragDetector")
@@ -400,7 +475,7 @@ function module.init(controller)
 					Janitor:Add(
 						DragDetector.DragStart:Connect(function(Player)
 							if not SwingDoors[floor.Name].debounce then
-								SwingDoorFunctions.ToggleDoor(Player, SwingDoor)
+								ToggleDoor(Player, SwingDoor)
 							end
 						end)
 					)
@@ -412,7 +487,7 @@ function module.init(controller)
 					Janitor:Add(
 						ClickDetector.MouseClick:Connect(function(Player)
 							if not SwingDoors[floor.Name].debounce then
-								SwingDoorFunctions.ToggleDoor(Player, SwingDoor)
+								ToggleDoor(Player, SwingDoor)
 							end
 						end)
 					)
@@ -420,7 +495,7 @@ function module.init(controller)
 
 			end
 
-			for _,v : Instance in pairs(SwingDoor:GetDescendants()) do
+			for _,v : Instance in ipairs(SwingDoor:GetDescendants()) do
 				if v:IsA("BasePart") then
 					Janitor:Add(
 						v.Touched:Connect(function(BasePart : BasePart)
@@ -496,8 +571,6 @@ function module.init(controller)
 					SwingDoors[floorName].idle_loop_active = true
 
 				elseif protocol == "on_door_opened" then
-
-
 					SwingDoors[floorName].locked = false
 
 					local WaitTime = config.IdleTime or 7
@@ -510,7 +583,7 @@ function module.init(controller)
 
 						task.delay(OpenDoorDelay, function()
 							if not SwingDoors[floorName].debounce and not SwingDoors[floorName].opened then
-								SwingDoorFunctions.ToggleDoor(nil, SwingDoors[floorName].doormodel)
+								ToggleDoor(nil, SwingDoors[floorName].doormodel)
 							end
 						end)
 					end
@@ -553,6 +626,49 @@ function module.init(controller)
 			end)
 		)
 		
+		Janitor:Add(
+			Control_API.Event:Connect(function(protocol : 'swing_door_signal' | 'test' , params : {
+				request : 'open' | 'close' | 'toggle',
+				OverrideSafety : boolean,
+				FloorNumber : number,
+				IfOnFloor : boolean,
+				OpenTime : number
+			})
+				if protocol == 'swing_door_signal' then
+					if not (params.request and params.FloorNumber) then return end
+					if params.OverrideSafety == nil then params.OverrideSafety = false end
+					if params.IfOnFloor == nil then params.IfOnFloor = true end
+					if FloorExists(params.FloorNumber) == false then warn("This floor does not exist!"); return end
+
+					local FloorData = SwingDoors[`Floor_{params.FloorNumber}`]
+					local DoorModel = FloorData.doormodel
+
+					if params.request == 'open' then
+						if FloorData.opened or FloorData.debounce then return end
+						if params.IfOnFloor then if not IsOnFloor(`Floor_{params.FloorNumber}`) then return end end
+						SwingDoorFunctions.OpenDoor(nil, DoorModel, FloorData.startPivot, FloorData.targetPivot)
+
+						if params.OpenTime then
+							task.delay(
+								params.OpenTime,
+								function()
+									if FloorData.opened ~= true or FloorData.debounce then return end
+									SwingDoorFunctions.CloseDoor(nil, DoorModel, FloorData.startPivot, FloorData.targetPivot)
+								end
+							)
+						end
+						if not params.OverrideSafety then API:Fire("Stop",true); state.Stopped = true end
+					elseif params.request == 'close' then
+						if (not FloorData.opened) or FloorData.debounce then return end
+						SwingDoorFunctions.CloseDoor(nil, DoorModel, FloorData.startPivot, FloorData.targetPivot)
+						if state.Stopped == true then API:Fire("Stop",false); state.Stopped = false end
+					elseif params.request == 'toggle' then
+						ToggleDoor(nil, DoorModel, params.OverrideSafety and "KEY" or nil)
+					end
+				end
+			end)
+		)
+
 		Janitor:Add(
 			script.Destroying:Connect(function()
 				Janitor:Cleanup()

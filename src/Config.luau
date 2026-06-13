@@ -1,5 +1,5 @@
 local config = {
-	DetectorType = "DragDetector", -- DragDetector | ClickDetector
+	DetectorType = "DragDetector", -- DragDetector | ClickDetector | None
 	OpenTime = 3, -- How long the door stays open - Seconds
 	MaxActivationDistance = 10, -- The max distance the elevator door can be opened.
 	CloseWhileOpen = true, -- Enables closing the door when it is open, by clicking it again.
@@ -28,7 +28,7 @@ local config = {
 	OpenDoorOnArrive = false, -- Opens the door when the innerdoors open.
 	CloseDoorOnCall = false, -- Closes the door when there is a call.
 	OpenDoorOnArriveDelay = 0.5, -- Delays the OpenDoorOnArrive. Does not affect manual door opening
-	
+
 	EnableBypass = true, -- Gives the ability to unlock swingdoors via Triangle Key or Safety Contact.
 	
 	CustomFloorConfig = {
