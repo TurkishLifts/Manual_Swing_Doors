@@ -7,4 +7,3 @@ realm = "shared"
 
 [dependencies]
 Janitor = "howmanysmall/janitor@1.4.1"
-Promise = "evaera/promise@4.0.0"

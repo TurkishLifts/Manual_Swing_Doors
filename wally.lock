@@ -20,4 +20,4 @@ dependencies = [["Promise", "evaera/promise@4.0.0"]]
 [[package]]
 name = "turkishlifts/manualswingdoors"
 version = "1.2.2"
-dependencies = [["Janitor", "howmanysmall/janitor@1.18.3"], ["Promise", "evaera/promise@4.0.0"]]
+dependencies = [["Janitor", "howmanysmall/janitor@1.18.3"]]
