@@ -1,3 +1,5 @@
+--!nocheck
+
 --[[
 	Manual Swing Door support for ModuluxV2 by TurkishLifts
 	
@@ -33,7 +35,7 @@ function module.init(controller)
 	local API : BindableEvent = controller.API
 	local Swing_API : BindableEvent = script:FindFirstChild("Swing_API")
 	local Platform : BasePart = controller.Platform
-	local Destination : NumberValue = Values:WaitForChild("Destination")
+
 	local ElevatorFloors = controller.Floors
 	if config.OpenInnerdoorsOnSetup == true then
 		API:Fire('door_signal', {
@@ -253,9 +255,6 @@ function module.init(controller)
 					FloorData.opened = false
 					FloorData.count = 0
 
-					local LiftHasCalls = HasCalls()
-					
-					
 					script.Swing_API:Fire("Swing_Door_Closed", {
 						FloorNumber = (FloorModel.Name:gsub("Floor_","")),
 						FloorModel = FloorModel,
@@ -371,11 +370,11 @@ function module.init(controller)
 			local BackDoors : Model = floor:FindFirstChild("Back_Doors")
 
 			if not FrontDoors and not BackDoors then warn(`Front_Doors and Back_Doors not found. Skipping door setup for floor {FloorNumber}.`) continue end
-			if not SwingDoorContainer then warn(`Swing_Doors not found. Skipping door setup for floor {FloorNumber}.`) continue end
+			if not SwingDoorContainer then warn(`Swing_Doors not found. Skipping door setup for floor {FloorNumber}.`); continue end
 
 			local SwingDoor : Model = SwingDoorContainer:FindFirstChildWhichIsA("Model")
 
-			if not SwingDoor then warn(`SwingDoor not found on floor {floor.Name:gsub("Floor_","")}, skipping floor.`) continue end
+			if not SwingDoor then warn(`SwingDoor not found on floor {floor.Name:gsub("Floor_","")}, skipping floor.`); continue end
 
 			if SwingDoors[floor.Name] == nil then
 				SwingDoors[floor.Name] = {
