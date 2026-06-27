@@ -1,7 +1,7 @@
 --[[
 	Manual Swing Door support for ModuluxV2 by TurkishLifts
 	
-	       VERSION: v1.3, DATE: 14/06/2026
+	       VERSION: v1.3.1, DATE: 27/06/2026
 ]]--
 
 --!nocheck
@@ -471,7 +471,10 @@ function module.init(controller)
 					DragDetector.DragStyle = Enum.DragDetectorDragStyle.Scriptable
 					DragDetector.Parent = v
 					DragDetector.MaxActivationDistance = GetConfig("MaxActivationDistance",floor.Name,10)
-					
+					if config.NewDragDetector then
+						DragDetector.ActivatedCursorIcon = "rbxassetid://135040650935313"
+						DragDetector.CursorIcon = "rbxassetid://84133861939386"
+					end
 					Janitor:Add(
 						DragDetector.DragStart:Connect(function(Player)
 							if not SwingDoors[floor.Name].debounce then

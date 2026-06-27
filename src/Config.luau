@@ -1,13 +1,13 @@
 local config = {
 	DetectorType = "DragDetector", -- DragDetector | ClickDetector | None
+	NewDragDetector = false, -- Enables the new modulux DragDetector style on the doors.
 	OpenTime = 3, -- How long the door stays open - Seconds
 	MaxActivationDistance = 10, -- The max distance the elevator door can be opened.
 	CloseWhileOpen = true, -- Enables closing the door when it is open, by clicking it again.
 	DoorRotation = "Anticlockwise", -- Clockwise | Anticlockwise
-	
+
 	LockType = "AfterClose", -- AfterClose | BeforeClose
 	UnlockType = "BeforeOpen", -- BeforeOpen | AfterOpen
-	
 	OpenSpeed = 1,  -- How fast the door opens - Seconds
 	CloseSpeed = 1, -- How fast the door closes - Seconds
 	
