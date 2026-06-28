@@ -1,7 +1,7 @@
 --[[
 	Manual Swing Door support for ModuluxV2 by TurkishLifts
 	
-	       VERSION: v1.3.1, DATE: 27/06/2026
+	       VERSION: v1.3.2, DATE: 28/06/2026
 ]]--
 
 --!nocheck
@@ -295,14 +295,17 @@ function module.init(controller)
 						API:Fire("Stop",true)
 						
 						if config.OpenInnerdoorsOnKey then
-							for _, doorData in controller.door_data do
-								doorData.Open({
-									open_time = controller.Config.doors.door_timers.open_no_call,
-									bypass_door_zone = true,
-									disable_safety_lock = true,
-									open_floor_doors = false,
-								})
-							end
+							task.defer(function()							
+								for _, doorData in controller.door_data do
+									doorData.Disable(false)
+									doorData.Open({
+										open_time = controller.Config.doors.door_timers.open_no_call,
+										disable_safety_lock = true,
+										bypass_door_zone = true,
+										bypass_disabled_elevator = true,
+									})
+								end
+							end)
 						end
 					else
 						local NearFloor = controller.GetNearestFloor()
