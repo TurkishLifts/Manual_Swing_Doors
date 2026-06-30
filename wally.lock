@@ -18,6 +18,11 @@ version = "4.0.6"
 dependencies = [["Promise", "evaera/promise@4.0.0"]]
 
 [[package]]
+name = "stravant/goodsignal"
+version = "0.2.1"
+dependencies = []
+
+[[package]]
 name = "turkishlifts/manualswingdoors"
-version = "1.2.2"
-dependencies = [["Janitor", "howmanysmall/janitor@1.18.3"]]
+version = "1.3.0"
+dependencies = [["Janitor", "howmanysmall/janitor@1.18.3"], ["goodsignal", "stravant/goodsignal@0.2.1"]]

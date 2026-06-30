@@ -20,7 +20,7 @@ local config = {
 	
 	IdleTime = 7, -- How long the lift waits until responding to another call.
 	CloseIdle = 0.5, -- How long the lift waits after the door closes
-	
+
 	OpenInnerdoorsOnSetup = true, -- Opens the innerdoors when the lift's setup is complete.
 	
 	OpenInnerdoorsOnKey = true, -- Forces inner doors open when elevator is stopped via Triangle Key

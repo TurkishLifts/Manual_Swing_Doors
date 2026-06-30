@@ -10,3 +10,8 @@ To create a build of Manual_Swing_Doors:
 ```bash
 rojo build plugin.project.json -o Manual_Swing_Doors.rbxm
 ```
+
+To the Dist folder:
+```bash
+rojo build plugin.project.json -o Dist/Manual_Swing_Doors.rbxm
+```

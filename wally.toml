@@ -1,9 +1,10 @@
 [package]
 name = "turkishlifts/manualswingdoors"
-version = "1.3"
+version = "1.3.3"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 
 
 [dependencies]
 Janitor = "howmanysmall/janitor@1.4.1"
+goodsignal = "stravant/goodsignal@0.2.1"

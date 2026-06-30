@@ -1,7 +1,7 @@
 --[[
 	Manual Swing Door support for ModuluxV2 by TurkishLifts
 	
-	       VERSION: v1.3.2, DATE: 28/06/2026
+	       VERSION: v1.3.3, DATE: 01/07/2026
 ]]--
 
 --!nocheck
@@ -21,9 +21,33 @@ type FloorDataInstance = {
 	doormodel : Model,
 	startPivot : CFrame,
 	targetPivot : CFrame,
+	StateChanged : any
 }
 
 function module.init(controller)
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	
+	local function GetDependency(name : string)
+		local embedded = script:FindFirstChild("Dependencies")
+		if embedded and embedded:FindFirstChild(name) then
+			return require(embedded[name])
+		end
+
+		local msdDeps = ReplicatedStorage:FindFirstChild("MSD_Dependencies")
+		if msdDeps and msdDeps:FindFirstChild(name) then
+			return require(msdDeps[name])
+		end
+
+		local legacy = ReplicatedStorage:FindFirstChild(name)
+
+		if legacy then
+			warn(`[Manual_Swing_Doors] DEPRECATED: Loading '{name}' directly from ReplicatedStorage is deprecated and will be removed in the future. Put dependencies on ReplicatedStorage.MSD_Dependencies instead.`)
+			return require(legacy)
+		end
+
+		error(`[Manual_Swing_Doors] Dependency '{name}' not found in script.Dependencies, ReplicatedStorage.MSD_Dependencies, or ReplicatedStorage.`)
+	end
+
 	local RunService = game:GetService("RunService")
 
 	local SwingDoors : {FloorDataInstance} = {
@@ -35,14 +59,15 @@ function module.init(controller)
 		key_debounce = false
 	}
 
+	if not script:FindFirstChild("Config") then error("Fatal error: Config not found in the plugin Manual_Swing_Doors"); return end
+	
 	local config = require(script.Config)
 	
-	local JanitorModule = require(
-		(script:FindFirstChild("Dependencies") and script:FindFirstChild("Dependencies"):FindFirstChild("Janitor")) 
-			or game:GetService("ReplicatedStorage"):FindFirstChild("Janitor")
-	)
+	local JanitorModule = GetDependency("Janitor")
 	local Janitor = JanitorModule.new()
 	
+	local GoodSignal = GetDependency("goodsignal")
+
 	local ElevatorModel : Model = controller.Source
 	local Values : Folder = ElevatorModel:WaitForChild("Values")
 	local FloorsFolder : Folder = ElevatorModel:FindFirstChild("Floors")
@@ -203,8 +228,7 @@ function module.init(controller)
 
 				FloorData.opened = true
 				FloorData.debounce = false
-
-
+				FloorData.StateChanged:Fire("Opened")
 		end,
 
 		CloseDoor = function(Player : Player, DoorModel : Model, startPivot, targetPivot)
@@ -262,6 +286,7 @@ function module.init(controller)
 					})
 
 					FloorData.debounce = false
+					FloorData.StateChanged:Fire("Closed")
 				end
 		end,
 
@@ -463,7 +488,8 @@ function module.init(controller)
 					idle_loop_active = false,
 					doormodel = SwingDoor,
 					startPivot = startPivot,
-					targetPivot = targetPivot
+					targetPivot = targetPivot,
+					StateChanged = GoodSignal.new()
 				}
 			end
 
@@ -549,7 +575,7 @@ function module.init(controller)
 						if CloseDoorOnCall then
 							if SwingDoors[floorName].opened then
 								while SwingDoors[floorName].debounce or SwingDoors[floorName].opened do
-									task.wait(0.1)
+									SwingDoors[floorName].StateChanged:Wait()
 								end
 								task.wait(CloseIdle)
 								API:Fire('door_signal', {
@@ -559,7 +585,7 @@ function module.init(controller)
 							end
 						else
 							while SwingDoors[floorName].debounce or SwingDoors[floorName].opened do
-								task.wait(0.1)
+								SwingDoors[floorName].StateChanged:Wait()
 							end
 							task.wait(CloseIdle)
 							if not SwingDoors[floorName].debounce and not SwingDoors[floorName].opened then
@@ -603,12 +629,11 @@ function module.init(controller)
 
 						LiftHasCalls = HasCalls()
 						if LiftHasCalls then
-							local CloseDoorOnCall = GetConfig("CloseDoorOnCall", floorName, false)
 							if CloseDoorOnCall then
 								SwingDoors[floorName].count = math.huge
 
 								while SwingDoors[floorName].opened do
-									task.wait(0.1)
+									SwingDoors[floorName].StateChanged:Wait()
 								end
 
 								task.wait(CloseIdle)
