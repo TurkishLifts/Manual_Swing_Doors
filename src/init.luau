@@ -1,7 +1,7 @@
 --[[
 	Manual Swing Door support for ModuluxV2 by TurkishLifts
 	
-	       VERSION: v1.3.3, DATE: 01/07/2026
+	       VERSION: v1.3.4, DATE: 18/07/2026
 ]]--
 
 --!nocheck
@@ -11,7 +11,6 @@ local module = {}
 -- Types
 type FloorDataInstance = {
 	debounce: boolean,
-	bypass_debounce : boolean,
 	opened: boolean,
 	count: number,
 	bypass: boolean,
@@ -21,6 +20,7 @@ type FloorDataInstance = {
 	doormodel : Model,
 	startPivot : CFrame,
 	targetPivot : CFrame,
+	DoorSound : Sound,
 	StateChanged : any
 }
 
@@ -185,14 +185,15 @@ function module.init(controller)
 			local DoorVolume = GetConfig("DoorVolume", FloorModel.Name, 1)
 			local DoorRollOffMaxDistance = GetConfig("DoorRollOffMaxDistance", FloorModel.Name, 15)
 			
-			local DoorSound : Sound = Platform:FindFirstChild("Swing_Door_Sound")
+			local DoorSound : Sound = DoorModel:FindFirstChild("Swing_Door_Sound",true)
 			if DoorSoundsEnabled then
 				if DoorSound == nil then
-					local DoorSound_New = Instance.new("Sound",Platform)
+					local DoorSound_New = Instance.new("Sound",DoorModel:FindFirstChildWhichIsA("BasePart",true))
 					DoorSound_New.Name = "Swing_Door_Sound"
 					DoorSound_New.Volume = DoorVolume
 					DoorSound_New.RollOffMaxDistance = DoorRollOffMaxDistance
 					DoorSound = DoorSound_New
+					FloorData.DoorSound = DoorSound_New
 				end
 			end
 
@@ -242,7 +243,8 @@ function module.init(controller)
 				local ClosedSoundId = GetConfig("ClosedSound", FloorModel.Name, 0)
 				local DoorSoundsEnabled = GetConfig("DoorSoundsEnabled", FloorModel.Name, false)
 				
-				local DoorSound : Sound = Platform:FindFirstChild("Swing_Door_Sound")
+				local DoorSound : Sound = FloorData.DoorSound
+
 				if not FloorData.bypass then
 
 					script.Swing_API:Fire("Swing_Door_Closing", {
@@ -252,14 +254,14 @@ function module.init(controller)
 					})
 					FloorData.debounce = true
 
-					if DoorSoundsEnabled and ClosingSoundId ~= 0  then
+					if DoorSoundsEnabled and ClosingSoundId ~= 0 and DoorSound then
 						if DoorSound.Playing == true then DoorSound:Stop() end
 						DoorSound.SoundId = `rbxassetid://{ClosingSoundId}`
 						DoorSound:Play()
 					end
 					
 					task.delay(CloseSpeed, function()
-						if DoorSoundsEnabled and ClosedSoundId ~= 0 then
+						if DoorSoundsEnabled and ClosedSoundId ~= 0 and DoorSound then
 							if DoorSound.Playing == true then DoorSound:Stop() end
 							DoorSound.SoundId = `rbxassetid://{ClosedSoundId}`
 							DoorSound:Play()
@@ -489,6 +491,7 @@ function module.init(controller)
 					doormodel = SwingDoor,
 					startPivot = startPivot,
 					targetPivot = targetPivot,
+					DoorSound = nil,
 					StateChanged = GoodSignal.new()
 				}
 			end
@@ -553,6 +556,11 @@ function module.init(controller)
 					
 					if LockType == "BeforeClose" then
 						SwingDoors[floorName].locked = true
+						if config.DoorSoundsEnabled == true and SwingDoors[floorName].DoorSound then
+							local LockSound = GetConfig("LockSound", floorName, 0)
+							SwingDoors[floorName].DoorSound.SoundId = `rbxassetid://{LockSound}`
+							SwingDoors[floorName].DoorSound:Play()
+						end
 					end
 					task.wait(InnerdoorsCloseSpeed-(InnerdoorsCloseSpeed * (10/100)))
 
@@ -564,10 +572,20 @@ function module.init(controller)
 					end
 					if LockType == "AfterClose" then
 						SwingDoors[floorName].locked = true
+						if config.DoorSoundsEnabled == true and SwingDoors[floorName].DoorSound then
+							local LockSound = GetConfig("LockSound", floorName, 0)
+							SwingDoors[floorName].DoorSound.SoundId = `rbxassetid://{LockSound}`
+							SwingDoors[floorName].DoorSound:Play()
+						end
 					end
 				elseif protocol == "on_stop" then
 					if UnlockType == "BeforeOpen" then
 						SwingDoors[floorName].locked = false
+						if config.DoorSoundsEnabled == true and SwingDoors[floorName].DoorSound then
+							local UnlockSound = GetConfig("UnlockSound", floorName, 0)
+							SwingDoors[floorName].DoorSound.SoundId = `rbxassetid://{UnlockSound}`
+							SwingDoors[floorName].DoorSound:Play()
+						end
 					end
 				elseif protocol == "on_car_call_added" or protocol == "on_hall_call_added" then		
 					local LiftHasCalls = HasCalls()

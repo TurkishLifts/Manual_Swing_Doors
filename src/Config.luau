@@ -15,6 +15,8 @@ local config = {
 	OpenSound = 123456789, -- Open sound - Asset ID
 	ClosingSound = 123456789, -- Open sound - Asset ID
 	ClosedSound = 123456789, -- Plays when the swing door is closed
+	LockSound = 123456789, -- Plays when the swing door is locked
+	UnlockSound = 123456789, -- Plays when the swing door is unlocked
 	DoorVolume = 1, -- Volume of the door sounds
 	DoorRollOffMaxDistance = 15, -- Maximum distance where the door sounds could be heard.
 	
