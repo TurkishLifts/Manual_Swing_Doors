@@ -73,8 +73,7 @@ function module.init(controller)
 	local FloorsFolder : Folder = ElevatorModel:FindFirstChild("Floors")
 	local CurrentFloor : NumberValue = Values:WaitForChild("Floor")
 	local API : BindableEvent = controller.API
-	local Platform : BasePart = controller.Platform
-
+	
 	local ElevatorFloors = controller.Floors
 	if config.OpenInnerdoorsOnSetup == true then
 		API:Fire('door_signal', {
